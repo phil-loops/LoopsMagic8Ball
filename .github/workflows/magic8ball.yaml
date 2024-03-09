@@ -118,7 +118,7 @@ jobs:
                       owner: context.repo.owner,
                       repo: context.repo.repo,
                       issue_number: prNumber,
-                      body: "LGTM 👍",
+                      body: "LGTM  👍",
                     });
 
                   }
