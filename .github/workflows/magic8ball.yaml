@@ -109,5 +109,5 @@ jobs:
                 await postCommentAndAct(pr.number, type);
               }
             } else {
-              console.log('No pull requests associated with the commit');
+              console.log('No pull requests associated with the commit.');
             }
