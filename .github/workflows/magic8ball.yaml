@@ -100,12 +100,14 @@ jobs:
 
                   if (reviewers.length > 0) {
                     const randomReviewer = reviewers[Math.floor(Math.random() * reviewers.length)];
-                    await github.rest.pulls.requestReviewers({
+                    const res = await github.rest.pulls.requestReviewers({
                       owner: context.repo.owner,
                       repo: context.repo.repo,
                       pull_number: prNumber,
                       reviewers: [randomReviewer],
                     });
+                    console.log('Requested a review from:', randomReviewer);
+                    console.log('Request review response:', res);
                   } else {
                     console.log('No eligible reviewers found that are not the PR author.');
                     await github.rest.issues.createComment({
@@ -118,7 +120,7 @@ jobs:
                       owner: context.repo.owner,
                       repo: context.repo.repo,
                       issue_number: prNumber,
-                      body: "LGTM  👍",
+                      body: "LGTM 👍",
                     });
 
                   }
