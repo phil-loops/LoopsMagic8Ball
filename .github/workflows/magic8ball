@@ -1,0 +1,88 @@
+name: Comment on PR on Push
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  comment-pr:
+    if: contains(github.event.head_commit.message, '/magic8ball')
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Comment on or Close the Pull Request
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const pullRequestList = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            });
+            const pullRequests = pullRequestList.data;
+
+            const closingPrMessages = [
+              "Let's keep that approach in our back pocket!",
+              "Signs are indicating that we should do it another (better) way!",
+              "Not a chance!",
+              "Absolutely not, try again!",
+            ]
+
+            const mergingPrMessages = [
+              "Absolutely!",
+              "Definitely go for it!",
+              "Outlook is looking bright!",
+              "Signs are pointing to a yes!",
+              "Without a doubt, go for it!",
+            ]
+
+            const neutralPrMessages = [
+              "Outlook is a bit cloudy... ",
+              "Can't predict now, try later!",
+              "Focus and ask again!",
+              "Response is unclear, try again!",
+              "Ask again at a later time!",
+            ] 
+
+            const makeComment = (prNumber, message) => {
+              github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: message + " 🎱"
+              });
+            }
+
+            if (pullRequests.length > 0) {
+              for (const pr of pullRequests) {
+                const issue_number = pr.number;
+                const action =  Math.random();
+                if (action < 0.3) {
+                  console.log("Closing PR " + issue_number)
+                  const comment = closingPrMessages[Math.floor(Math.random() * closingPrMessages.length)];
+                  await makeComment(issue_number, comment);
+                  await github.rest.pulls.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: issue_number,
+                    state: "closed",
+                  });
+                } else if (action < 0.6) {
+                  const comment = neutralPrMessages[Math.floor(Math.random() * neutralPrMessages.length)];
+                  await makeComment(issue_number, comment);
+                } else {
+                  const comment = mergingPrMessages[Math.floor(Math.random() * mergingPrMessages.length)];
+                  await makeComment(issue_number, comment);
+                  await github.rest.pulls.merge({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: issue_number,
+                  });
+                }
+              }
+            } else {
+              console.log('No pull requests associated with the commit');
+            }
