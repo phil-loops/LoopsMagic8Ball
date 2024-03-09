@@ -25,23 +25,8 @@ jobs:
 
             console.log("KEYS::: ", Object.keys(pullRequests));
 
-            let reviewers = [];
-              const collaborators = await github.rest.repos.listCollaborators({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                affiliation: 'direct',
-              });
-
-              console.log("collaborators::: ", collaborators.data);
-
-              for (const collaborator of collaborators.data) {
-                if (collaborator.permissions.push || collaborator.permissions.admin) {
-                  reviewers.push(collaborator.login);
-                }
-              }
-            console.log("Potential reviewer::: ", reviewers.join(", "));
-
             const decisionTypes = {
+              /*
               closing: {
                 icon: "❌",
                 messages: [
@@ -88,6 +73,39 @@ jobs:
                 ],
                 action: async (_) => { /* No action needed for neutral responses */ },
               },
+              */
+              review: {
+                icon: "👀",
+                messages: [
+                  "I'll take a look at it!",
+                  "I'll review it and get back to you!",
+                  "I'll take a look and let you know!",
+                  "I'll review it and let you know!",
+                ],
+                action: async (prNumber) => {
+                  const reviewers = [];
+                  const collaborators = await github.rest.repos.listCollaborators({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    affiliation: 'direct',
+                  });
+
+
+                  for (const collaborator of collaborators.data) {
+                    if (collaborator.permissions.push || collaborator.permissions.admin) {
+                      reviewers.push(collaborator.login);
+                    }
+                  }
+
+                  const randomReviewer = reviewers[Math.floor(Math.random() * reviewers.length)];
+                  await github.rest.pulls.requestReviewers({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: prNumber,
+                    reviewers: [randomReviewer],
+                  });
+                },
+              }
             };
 
             const postCommentAndAct = async (prNumber, type) => {
