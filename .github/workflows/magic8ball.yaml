@@ -1,6 +1,6 @@
 name: Ask Magic 8 Ball
 on:
-  workflow_dispatch:
+  workflow_call:
 
 jobs:
   magic-8-ball:
