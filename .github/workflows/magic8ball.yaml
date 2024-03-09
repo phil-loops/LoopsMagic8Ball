@@ -23,8 +23,6 @@ jobs:
               commit_sha: context.sha,
             })
 
-            console.log("KEYS::: ", Object.keys(pullRequests));
-
             const decisionTypes = {
               closing: {
                 icon: "❌",
@@ -110,6 +108,12 @@ jobs:
                     });
                   } else {
                     console.log('No eligible reviewers found that are not the PR author.');
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: prNumber,
+                      body: "I'm unable to find an elligible reviewer for this PR (lgtm, btw) -- I say: merge to main and ease the pain! ",
+                    });
                   }
                 },
               }
