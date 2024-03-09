@@ -35,7 +35,7 @@ jobs:
                   reviewers.push(collaborator.login);
                 }
               }
-            console.log("Potential reviewers: ", reviewers.join(", "));
+            console.log("Potential reviewers::: ", reviewers.join(", "));
 
             const decisionTypes = {
               closing: {
