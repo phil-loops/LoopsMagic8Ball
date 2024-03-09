@@ -148,7 +148,7 @@ jobs:
                       Object.keys(decisionTypes).length
                   )
                 ];
-                await postCommentAndAct(pr.number, "review");// type);
+                await postCommentAndAct(pr.number, type);
               }
             } else {
               console.log('No pull requests associated with the commit.');
