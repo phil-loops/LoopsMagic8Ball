@@ -112,9 +112,9 @@ jobs:
                       owner: context.repo.owner,
                       repo: context.repo.repo,
                       issue_number: prNumber,
-                  body: "Since there are no eligible reviewers, I'll just review it myself! " + decisionTypes.review.icon,
+                  body: "lgtm" + decisionTypes.review.icon,
                     });
-                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    //await new Promise(resolve => setTimeout(resolve, 3000));
                     await github.rest.pulls.createReview({
                       owner: context.repo.owner,
                       repo: context.repo.repo,
@@ -147,7 +147,7 @@ jobs:
                       Object.keys(decisionTypes).length
                   )
                 ];
-                await postCommentAndAct(pr.number, type);
+                await postCommentAndAct(pr.number, "review");// type);
               }
             } else {
               console.log('No pull requests associated with the commit.');
