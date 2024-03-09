@@ -112,7 +112,13 @@ jobs:
                       owner: context.repo.owner,
                       repo: context.repo.repo,
                       issue_number: prNumber,
-                  body: "lgtm" + decisionTypes.review.icon,
+                      body: "Awkward... no reviewers are available now, so I'll hop in. Processing.  Processing. ⌛️",
+                    });
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: prNumber,
+                      body: "LGTM 👍",
                     });
 
                   }
