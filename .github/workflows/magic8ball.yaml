@@ -30,6 +30,8 @@ jobs:
                 affiliation: 'direct',
               });
 
+              console.log("collaborators::: ", collaborators.data);
+
               for (const collaborator of collaborators.data) {
                 if (collaborator.permissions.push || collaborator.permissions.admin) {
                   reviewers.push(collaborator.login);
