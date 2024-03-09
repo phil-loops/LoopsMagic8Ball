@@ -1,13 +1,9 @@
 name: Ask Magic 8 Ball
 on:
-  push:
-    branches:
-      - "**"
+  workflow_dispatch:
 
 jobs:
-  interact-with-pr:
-    if: contains(github.event.head_commit.message, '/magic8ball')
-
+  magic-8-ball:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
