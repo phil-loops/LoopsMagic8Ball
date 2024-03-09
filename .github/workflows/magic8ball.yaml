@@ -1,87 +1,112 @@
-name: Comment on PR on Push
+name: Ask Magic 8 Ball
 on:
   push:
     branches:
       - "**"
 
 jobs:
-  comment-pr:
-    if: contains(github.event.head_commit.message, '/magic8ball')
+  interact-with-pr:
+    # if: contains(github.event.head_commit.message, '/magic8ball')
 
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Comment on or Close the Pull Request
+      - name: Automated PR Interaction
         uses: actions/github-script@v6
         with:
           script: |
-            const pullRequestList = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+            const pullRequests = await github.rest.repos.listPullRequestsAssociatedWithCommit({
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: context.sha,
-            });
-            const pullRequests = pullRequestList.data;
+            }).data;
 
-            const closingPrMessages = [
-              "Let's keep that approach in our back pocket!",
-              "Signs are indicating that we should do it another (better) way!",
-              "Not a chance!",
-              "Absolutely not, try again!",
-            ]
-
-            const mergingPrMessages = [
-              "Absolutely!",
-              "Definitely go for it!",
-              "Outlook is looking bright!",
-              "Signs are pointing to a yes!",
-              "Without a doubt, go for it!",
-            ]
-
-            const neutralPrMessages = [
-              "Outlook is a bit cloudy... ",
-              "Can't predict now, try later!",
-              "Focus and ask again!",
-              "Response is unclear, try again!",
-              "Ask again at a later time!",
-            ] 
-
-            const makeComment = (prNumber, message) => {
-              github.rest.issues.createComment({
+            let reviewers = [];
+              const collaborators = await github.rest.repos.listCollaborators({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: prNumber,
-                body: message + " 🎱"
+                affiliation: 'direct',
               });
-            }
 
-            if (pullRequests.length > 0) {
-              for (const pr of pullRequests) {
-                const issue_number = pr.number;
-                const action =  Math.random();
-                if (action < 0.3) {
-                  console.log("Closing PR " + issue_number)
-                  const comment = closingPrMessages[Math.floor(Math.random() * closingPrMessages.length)];
-                  await makeComment(issue_number, comment);
+              for (const collaborator of collaborators.data) {
+                if (collaborator.permissions.push || collaborator.permissions.admin) {
+                  reviewers.push(collaborator.login);
+                }
+              }
+            console.log("Potential reviewers: ", reviewers.join(", "));
+
+            const decisionTypes = {
+              closing: {
+                icon: "❌",
+                messages: [
+                  "Let's keep that approach in our back pocket!",
+                  "Signs are indicating that we should do it another (better) way!",
+                  "Not a chance!",
+                  "Absolutely not, try again!",
+                ],
+                action: async (prNumber) => {
                   await github.rest.pulls.update({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
-                    pull_number: issue_number,
+                    pull_number: prNumber,
                     state: "closed",
                   });
-                } else if (action < 0.6) {
-                  const comment = neutralPrMessages[Math.floor(Math.random() * neutralPrMessages.length)];
-                  await makeComment(issue_number, comment);
-                } else {
-                  const comment = mergingPrMessages[Math.floor(Math.random() * mergingPrMessages.length)];
-                  await makeComment(issue_number, comment);
+                },
+              },
+              merging: {
+                icon: "🎉",
+                messages: [
+                  "Absolutely!",
+                  "Definitely go for it!",
+                  "Outlook is looking bright!",
+                  "Signs are pointing to a yes!",
+                  "Without a doubt, go for it!",
+                  "LGTM"
+                ],
+                action: async (prNumber) => {
                   await github.rest.pulls.merge({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
-                    pull_number: issue_number,
+                    pull_number: prNumber,
                   });
-                }
+                },
+              },
+              neutral: {
+                icon: "🤔",
+                messages: [
+                  "Outlook is a bit cloudy...",
+                  "Can't predict now, try later!",
+                  "Focus and ask again!",
+                  "Response is unclear, try again!",
+                  "Ask again at a later time!",
+                ],
+                action: async (_) => { /* No action needed for neutral responses */ },
+              },
+            };
+
+            const postCommentAndAct = async (prNumber, type) => {
+              const decision = decisionTypes[type];
+              const message = decision.messages[Math.floor(Math.random() * decision.messages.length)] + " " + decision.icon;
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: message,
+              });
+              await decision.action(prNumber);
+            };
+
+            if (pullRequests.length > 0) {
+              for (const pr of pullRequests) {
+                const type = Object.keys(decisionTypes)[
+                  Math.floor(
+                      Math.random() * 
+                      Object.keys(decisionTypes).length
+                  )
+                ];
+                await postCommentAndAct(pr.number, type);
               }
             } else {
               console.log('No pull requests associated with the commit');
