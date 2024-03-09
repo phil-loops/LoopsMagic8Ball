@@ -22,4 +22,4 @@ Whenever a commit is pushed to any branch and the commit message includes `/magi
 ## Configuration
 
 Ensure you have the GitHub Actions permissions configured to allow repository interactions such as closing, merging, and commenting on PRs.
-[more here]
+[more h ere]
