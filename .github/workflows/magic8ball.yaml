@@ -96,7 +96,7 @@ jobs:
                   // Filter out the PR author from the list of potential reviewers
                   const reviewers = collaborators.data
                     .filter(collaborator => (collaborator.permissions.push || collaborator.permissions.admin) && collaborator.login !== prAuthor)
-                    .map(collaborator => collaborator.login);
+                    .map(collaborator => collaborator.login); 
 
                   if (reviewers.length > 0) {
                     const randomReviewer = reviewers[Math.floor(Math.random() * reviewers.length)];
