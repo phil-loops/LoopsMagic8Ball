@@ -17,25 +17,11 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const pullRequests = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+            const { data: pullRequests } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: context.sha,
-            }).data;
-
-            let reviewers = [];
-              const collaborators = await github.rest.repos.listCollaborators({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                affiliation: 'direct',
-              });
-
-              for (const collaborator of collaborators.data) {
-                if (collaborator.permissions.push || collaborator.permissions.admin) {
-                  reviewers.push(collaborator.login);
-                }
-              }
-            console.log("Potential reviewers: ", reviewers.join(", "));
+            })
 
             const decisionTypes = {
               closing: {
@@ -84,6 +70,62 @@ jobs:
                 ],
                 action: async (_) => { /* No action needed for neutral responses */ },
               },
+              review: {
+                icon: "👀",
+                messages: [
+                  "Let's get some eyes on this!",
+                  "We need an outside opinion!",
+                  "Let's get a new set of eyes here!",
+                  "We need a review!",
+                ],
+                action: async (prNumber) => {
+                  const prDetails = await github.rest.pulls.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: prNumber,
+                  });
+                  const prAuthor = prDetails.data.user.login;
+
+                  // Fetch collaborators with write or admin permissions
+                  const collaborators = await github.rest.repos.listCollaborators({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    affiliation: 'direct',
+                  });
+
+                  // Filter out the PR author from the list of potential reviewers
+                  const reviewers = collaborators.data
+                    .filter(collaborator => (collaborator.permissions.push || collaborator.permissions.admin) && collaborator.login !== prAuthor)
+                    .map(collaborator => collaborator.login); 
+
+                  if (reviewers.length > 0) {
+                    const randomReviewer = reviewers[Math.floor(Math.random() * reviewers.length)];
+                    const res = await github.rest.pulls.requestReviewers({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: prNumber,
+                      reviewers: [randomReviewer],
+                    });
+                    console.log('Requested a review from:', randomReviewer);
+                    console.log('Request review response:', res);
+                  } else {
+                    console.log('No eligible reviewers found that are not the PR author.');
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: prNumber,
+                      body: "Awkward... no reviewers are available now, so I'll hop in. Processing.  Processing. ⌛️",
+                    });
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: prNumber,
+                      body: "LGTM 👍",
+                    });
+
+                  }
+                },
+              }
             };
 
             const postCommentAndAct = async (prNumber, type) => {
@@ -109,5 +151,5 @@ jobs:
                 await postCommentAndAct(pr.number, type);
               }
             } else {
-              console.log('No pull requests associated with the commit');
+              console.log('No pull requests associated with the commit.');
             }
