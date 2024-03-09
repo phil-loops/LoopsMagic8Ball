@@ -89,6 +89,7 @@ jobs:
             };
 
             const postCommentAndAct = async (prNumber, type) => {
+              console.log("Posting comment and acting on PR...")
               const decision = decisionTypes[type];
               const message = decision.messages[Math.floor(Math.random() * decision.messages.length)] + " " + decision.icon;
               await github.rest.issues.createComment({
@@ -98,8 +99,10 @@ jobs:
                 body: message,
               });
               await decision.action(prNumber);
+              console.log(" > Comment posted and action taken!");
             };
 
+            console.log("Pull requests associated with the commit::: ", pullRequests);
             if (pullRequests.length > 0) {
               for (const pr of pullRequests) {
                 const type = Object.keys(decisionTypes)[
