@@ -68,7 +68,7 @@ jobs:
                   "Response is unclear, try again!",
                   "Ask again at a later time!",
                 ],
-                action: async () => {/* No action needed for neutral responses */ },
+                action: async () => { /* No action needed for neutral responses */ },
               },
               review: {
                 icon: "👀",
