@@ -96,16 +96,18 @@ jobs:
                   // Filter out the PR author from the list of potential reviewers
                   const reviewers = collaborators.data
                     .filter(collaborator => (collaborator.permissions.push || collaborator.permissions.admin) && collaborator.login !== prAuthor)
-                    .map(collaborator => collaborator.login);
+                    .map(collaborator => collaborator.login); 
 
                   if (reviewers.length > 0) {
                     const randomReviewer = reviewers[Math.floor(Math.random() * reviewers.length)];
-                    await github.rest.pulls.requestReviewers({
+                    const res = await github.rest.pulls.requestReviewers({
                       owner: context.repo.owner,
                       repo: context.repo.repo,
                       pull_number: prNumber,
                       reviewers: [randomReviewer],
                     });
+                    console.log('Requested a review from:', randomReviewer);
+                    console.log('Request review response:', res);
                   } else {
                     console.log('No eligible reviewers found that are not the PR author.');
                     await github.rest.issues.createComment({
@@ -146,7 +148,7 @@ jobs:
                       Object.keys(decisionTypes).length
                   )
                 ];
-                await postCommentAndAct(pr.number, "review");// type);
+                await postCommentAndAct(pr.number, type);
               }
             } else {
               console.log('No pull requests associated with the commit.');
