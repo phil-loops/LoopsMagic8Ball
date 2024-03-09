@@ -1,0 +1,151 @@
+name: Ask Magic 8 Ball
+on:
+  workflow_dispatch:
+
+jobs:
+  magic-8-ball:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Automated PR Interaction
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+            })
+
+            const decisionTypes = {
+              closing: {
+                icon: "❌",
+                messages: [
+                  "Let's keep that approach in our back pocket!",
+                  "Signs are indicating that we should do it another (better) way!",
+                  "Not a chance!",
+                  "Absolutely not, try again!",
+                ],
+                action: async (prNumber) => {
+                  await github.rest.pulls.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: prNumber,
+                    state: "closed",
+                  });
+                },
+              },
+              merging: {
+                icon: "🎉",
+                messages: [
+                  "Absolutely!",
+                  "Definitely go for it!",
+                  "Outlook is looking bright!",
+                  "Signs are pointing to a yes!",
+                  "Without a doubt, go for it!",
+                  "LGTM"
+                ],
+                action: async (prNumber) => {
+                  await github.rest.pulls.merge({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: prNumber,
+                  });
+                },
+              },
+              neutral: {
+                icon: "🤔",
+                messages: [
+                  "Outlook is a bit cloudy...",
+                  "Can't predict now, try later!",
+                  "Focus and ask again!",
+                  "Response is unclear, try again!",
+                  "Ask again at a later time!",
+                ],
+                action: async () => { /* No action needed for neutral responses */ },
+              },
+              review: {
+                icon: "👀",
+                messages: [
+                  "Let's get some eyes on this!",
+                  "We need an outside opinion!",
+                  "Let's get a new set of eyes here!",
+                  "We need a review!",
+                ],
+                action: async (prNumber) => {
+                  const prDetails = await github.rest.pulls.get({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: prNumber,
+                  });
+                  const prAuthor = prDetails.data.user.login;
+
+                  // Fetch collaborators with write or admin permissions
+                  const collaborators = await github.rest.repos.listCollaborators({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    affiliation: 'direct',
+                  });
+
+                  // Filter out the PR author from the list of potential reviewers
+                  const reviewers = collaborators.data
+                    .filter(collaborator => (collaborator.permissions.push || collaborator.permissions.admin) && collaborator.login !== prAuthor)
+                    .map(collaborator => collaborator.login); 
+
+                  if (reviewers.length > 0) {
+                    const randomReviewer = reviewers[Math.floor(Math.random() * reviewers.length)];
+                    const res = await github.rest.pulls.requestReviewers({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: prNumber,
+                      reviewers: [randomReviewer],
+                    });
+                    console.log('Requested a review from:', randomReviewer);
+                    console.log('Request review response:', res);
+                  } else {
+                    console.log('No eligible reviewers found that are not the PR author.');
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: prNumber,
+                      body: "Awkward... no reviewers are available now, so I'll hop in. Processing.  Processing. ⌛️",
+                    });
+                    await github.rest.issues.createComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: prNumber,
+                      body: "LGTM 👍",
+                    });
+
+                  }
+                },
+              }
+            };
+
+            const postCommentAndAct = async (prNumber, type) => {
+              const decision = decisionTypes[type];
+              const message = decision.messages[Math.floor(Math.random() * decision.messages.length)] + " " + decision.icon;
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: message,
+              });
+              await decision.action(prNumber);
+            };
+
+            if (pullRequests.length > 0) {
+              for (const pr of pullRequests) {
+                const type = Object.keys(decisionTypes)[
+                  Math.floor(
+                      Math.random() * 
+                      Object.keys(decisionTypes).length
+                  )
+                ];
+                await postCommentAndAct(pr.number, type);
+              }
+            } else {
+              console.log('No pull requests associated with the commit.');
+            }
