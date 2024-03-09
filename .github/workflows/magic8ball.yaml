@@ -21,7 +21,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               commit_sha: context.sha,
-            })
+            }).data
 
             console.log("KEYS::: ", Object.keys(pullRequests));
 
