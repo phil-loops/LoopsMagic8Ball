@@ -112,7 +112,7 @@ jobs:
                       owner: context.repo.owner,
                       repo: context.repo.repo,
                       issue_number: prNumber,
-                      body: "I'm unable to find an elligible reviewer for this PR (lgtm, btw) -- I say: merge to main and ease the pain! ",
+                  body: "I'm unable to find an elligible reviewer for this PR\n\n(lgtm) \n\nI say: merge to main and ease the pain! ",
                     });
                   }
                 },
